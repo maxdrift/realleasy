@@ -3,6 +3,7 @@ defmodule Mix.Tasks.Changelog do
   Aggregates a changelog from GitHub pull requests present in each commit.
   """
   @shortdoc "Generates a changelog"
+  @requirements ["app.start"]
 
   use Mix.Task
 
