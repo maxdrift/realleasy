@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v0.2.1 (Deployed on 2021-10-16)
+
+### Added
+
+### Changed
+
+### Fixed
+
+* Fix major and minor version bump ([#3](https://github.com/maxdrift/realleasy/pull/3))
+
+
 ## v0.2.0 (Deployed on 2021-10-16)
 
 ### Added
