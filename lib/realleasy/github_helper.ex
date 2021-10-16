@@ -21,14 +21,17 @@ defmodule GitHubHelper do
 
     case get(@compare_endpoint, opts: [path_params: path_params]) do
       {:ok, %Tesla.Env{body: body}} ->
-        commits = body["commits"]
+        commits = body["commits"] || []
 
         IO.puts("The following commits will be included in the release:")
 
         commit_hashes =
           commits
           # Reject commits with more than one parent (should match "merge commits")
-          |> Enum.reject(fn commit -> Enum.count(commit["parents"]) > 1 end)
+          |> Enum.reject(fn commit ->
+            parents = commit["parents"] || []
+            Enum.count(parents) > 1
+          end)
           |> Enum.map(fn commit ->
             date = commit["commit"]["author"]["date"]
             hash = commit["sha"]
