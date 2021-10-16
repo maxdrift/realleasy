@@ -119,11 +119,11 @@ defmodule Realleasy do
     case bump_type do
       "major" ->
         new_major = bump_digit(major)
-        {:ok, "v#{new_major}.#{minor}.#{patch}"}
+        {:ok, "v#{new_major}.0.0"}
 
       "minor" ->
         new_minor = bump_digit(minor)
-        {:ok, "v#{major}.#{new_minor}.#{patch}"}
+        {:ok, "v#{major}.#{new_minor}.0"}
 
       "patch" ->
         new_patch = bump_digit(patch)
