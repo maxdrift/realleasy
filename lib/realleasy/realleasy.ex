@@ -6,6 +6,9 @@ defmodule Realleasy do
   alias GitHubHelper
 
   def prepare_changelog(rc_branch, base_branch \\ nil, opts \\ []) do
+    # Make sure Hackney is started
+    Application.ensure_all_started(:hackney)
+
     base_branch = get_base_branch(base_branch)
     changelog_file = get_changelog_file()
 
