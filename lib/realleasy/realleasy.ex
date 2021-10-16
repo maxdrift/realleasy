@@ -43,14 +43,7 @@ defmodule Realleasy do
            ChangelogHelper.render_changelog(new_version, changes, Date.utc_today()),
          # prepend to existing changelog
          :ok <- ChangelogHelper.write_changelog(changelog, new_changelog, changelog_file),
-         # ask for confirmation
-         :ok <- prompt_changelog_confirmation(),
-         # commit changelog
-         :ok <- GitHelper.git_unstage_all(),
-         :ok <- GitHelper.git_add(changelog_file),
-         :ok <- GitHelper.git_commit("Update Changelog for #{new_version} release"),
-         # push to remote
-         :ok <- GitHelper.git_push(rc_branch) do
+         :ok <- maybe_commit_changelog(changelog_file, new_version, rc_branch, opts) do
       :ok
     else
       {:error, _reason} = error ->
@@ -64,6 +57,42 @@ defmodule Realleasy do
   end
 
   # Internal
+
+  defp maybe_commit_changelog(changelog_file, new_version, rc_branch, opts) do
+    commit? = Keyword.get(opts, :commit?, false)
+    # ask for confirmation
+    with true <- commit?,
+         :ok <- prompt_changelog_confirmation(),
+         # commit changelog
+         :ok <- GitHelper.git_unstage_all(),
+         :ok <- GitHelper.git_add(changelog_file),
+         :ok <- GitHelper.git_commit("Update Changelog for #{new_version} release"),
+         :ok <- maybe_push_commit(rc_branch, opts) do
+      :ok
+    else
+      false ->
+        :ok
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
+  defp maybe_push_commit(rc_branch, opts) do
+    push? = Keyword.get(opts, :push?, false)
+
+    with true <- push?,
+         # push to remote
+         :ok <- GitHelper.git_push(rc_branch) do
+      :ok
+    else
+      false ->
+        :ok
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
 
   defp get_base_branch(nil), do: Application.get_env(:realleasy, :default_base_branch)
   defp get_base_branch(base_branch), do: base_branch
