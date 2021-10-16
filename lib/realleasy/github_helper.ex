@@ -138,19 +138,37 @@ defmodule GitHubHelper do
   defp fetch_gh_pull_request(commit_hash, {:ok, acc}) do
     path_params = Keyword.merge(get_base_params(), commit_sha: commit_hash)
 
-    case get(@commits_endpoint, opts: [path_params: path_params]) do
-      {:ok, %Tesla.Env{body: body}} ->
-        [pull_request] =
-          Enum.filter(body, fn pr -> pr["state"] == "closed" and not is_nil(pr["merged_at"]) end)
+    with {:ok, %Tesla.Env{body: body}} <-
+           get(@commits_endpoint, opts: [path_params: path_params]),
+         [pull_request] <-
+           Enum.filter(body, fn pr -> pr["state"] == "closed" and not is_nil(pr["merged_at"]) end) do
+      pr_number = pull_request["number"]
+      pr_url = pull_request["html_url"]
+      pr_desc = pull_request["body"]
 
-        pr_number = pull_request["number"]
-        pr_url = pull_request["html_url"]
-        pr_desc = pull_request["body"]
-
-        {:cont, {:ok, [{pr_number, pr_url, pr_desc} | acc]}}
+      {:cont, {:ok, [{pr_number, pr_url, pr_desc} | acc]}}
+    else
+      [] ->
+        Logger.warn("No PR found for commit #{commit_hash}. Skipping...")
+        {:cont, {:ok, acc}}
 
       {:error, _reason} = error ->
         {:halt, error}
     end
+
+    # case get(@commits_endpoint, opts: [path_params: path_params]) do
+    #   {:ok, %Tesla.Env{body: body}} ->
+    #     [pull_request] =
+    #       Enum.filter(body, fn pr -> pr["state"] == "closed" and not is_nil(pr["merged_at"]) end)
+
+    #     pr_number = pull_request["number"]
+    #     pr_url = pull_request["html_url"]
+    #     pr_desc = pull_request["body"]
+
+    #     {:cont, {:ok, [{pr_number, pr_url, pr_desc} | acc]}}
+
+    #   {:error, _reason} = error ->
+    #     {:halt, error}
+    # end
   end
 end
