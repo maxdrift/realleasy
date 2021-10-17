@@ -1,10 +1,18 @@
 defmodule Realleasy do
+  @moduledoc """
+  Finds all commits between `rc_branch` and `base_branch`, prompts for a new version
+  and extracts Changelog information from each commit's PR description.
+  """
   require Logger
 
   alias ChangelogHelper
   alias GitHelper
   alias GitHubHelper
 
+  @doc """
+  Inserts a new release in the `CHANGELOG.md` file with a log of changes.
+  Optionally commits and pushed to a remote origin.
+  """
   def prepare_changelog(rc_branch, base_branch \\ nil, opts \\ []) do
     # Make sure Hackney is started
     Application.ensure_all_started(:hackney)
