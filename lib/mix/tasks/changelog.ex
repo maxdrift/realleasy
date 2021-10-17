@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Changelog do
   @moduledoc """
-  Aggregates a changelog from GitHub pull requests present in each commit.
+  Generate a log of changes before releasing a new version of an application.
   """
   @shortdoc "Generates a changelog"
   @requirements ["app.start"]
@@ -10,13 +10,20 @@ defmodule Mix.Tasks.Changelog do
   alias Realleasy
 
   @impl Mix.Task
-  def run([rc_branch] = args) do
-    Mix.shell().info(Enum.join(args, " "))
+  def run([rc_branch]) do
     Realleasy.prepare_changelog(rc_branch)
   end
 
-  def run([rc_branch, "into", base_branch] = args) do
-    Mix.shell().info(Enum.join(args, " "))
+  def run([rc_branch, "into", base_branch]) do
     Realleasy.prepare_changelog(rc_branch, base_branch)
+  end
+
+  def run(_args) do
+    IO.puts("""
+    Invalid arguments. Please run:
+      mix changelog <rc-branch>
+    or
+      mix changelog <rc-branch> into <base-branch>
+    """)
   end
 end
