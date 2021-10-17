@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v0.2.2 (Deployed on 2021-10-17)
+
+### Added
+
+* Add license
+
+### Changed
+
+* Prepare docs for Hex.pm release
+* Improve Mix task error handling
+
+### Fixed
+
+
 ## v0.2.1 (Deployed on 2021-10-16)
 
 ### Added
