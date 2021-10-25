@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v0.3.0 (Deployed on 2021-10-25)
+
+### Added
+
+### Changed
+
+* Make it more stand-alone
+
+### Fixed
+
+
 ## v0.2.2 (Deployed on 2021-10-17)
 
 ### Added
