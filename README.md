@@ -14,7 +14,7 @@ The package can be installed by adding `realleasy` to your list of dependencies 
 ```elixir
 def deps do
   [
-    {:realleasy, "~> 0.2.2"}
+    {:realleasy, "~> 0.3.0"}
   ]
 end
 ```
