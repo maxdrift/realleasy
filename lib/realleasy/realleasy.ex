@@ -13,30 +13,25 @@ defmodule Realleasy do
   Inserts a new release in the `CHANGELOG.md` file with a log of changes.
   Optionally commits and pushed to a remote origin.
   """
+  @spec prepare_changelog(String.t(), String.t() | nil, Keyword.t()) :: :ok | {:error, any()}
   def prepare_changelog(rc_branch, base_branch \\ nil, opts \\ []) do
     # Make sure Hackney is started
     Application.ensure_all_started(:hackney)
 
-    base_branch = get_base_branch(base_branch)
-    changelog_file = get_changelog_file()
-
-    stash_first? = Keyword.get(opts, :stash_first?, false)
+    base_branch = base_branch || "main"
+    changelog_file = Keyword.get(opts, :changelog, "CHANGELOG.md")
 
     # save current branch name
     {:ok, current_branch} = GitHelper.get_current_git_branch()
 
-    if stash_first? do
-      # git stash --include-untracked
-      :ok = GitHelper.stash_current_git_changes()
-    end
-
-    # fetch --prune
-    with :ok <- GitHelper.fetch_git_changes(),
+    with :ok <- maybe_stash(opts),
+         :ok <- GitHelper.fetch_git_changes(),
+         # fetch --prune
          # git checkout RC branch
          :ok <- GitHelper.checkout_git_branch(rc_branch),
          # get last tag
          {:ok, prev_tag} <- GitHelper.get_most_recent_git_tag(),
-         # find commits beween last tag and head of develop or commit hash and present them to the user
+         # find commits beween last tag and head of base_branch or commit hash and present them to the user
          {:ok, commit_hashes} <- GitHubHelper.get_commits_between_refs(base_branch, rc_branch),
          # ask for a version bump (i.e. major, minor, patch)
          {:ok, answer} <- prompt_version_bump(prev_tag),
@@ -54,22 +49,54 @@ defmodule Realleasy do
          :ok <- maybe_commit_changelog(changelog_file, new_version, rc_branch, opts) do
       :ok
     else
-      {:error, _reason} = error ->
-        error
+      {:error, reason} ->
+        Logger.error("Failed to generate the Changelog: #{reason}")
+        :error
     end
 
-    if stash_first? do
-      :ok = GitHelper.checkout_git_branch(current_branch)
-      :ok = GitHelper.unstash_current_git_changes()
-    end
+    :ok = maybe_unstash(current_branch, opts)
   end
 
   # Internal
 
+  defp maybe_stash(opts) do
+    stash? = Keyword.get(opts, :stash, false)
+
+    with true <- stash?,
+         # git stash --include-untracked
+         :ok <- GitHelper.stash_current_git_changes() do
+      :ok
+    else
+      false ->
+        :ok
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
+  defp maybe_unstash(current_branch, opts) do
+    stash? = Keyword.get(opts, :stash, false)
+
+    with true <- stash?,
+         :ok <- GitHelper.checkout_git_branch(current_branch),
+         :ok <- GitHelper.unstash_current_git_changes() do
+      :ok
+    else
+      false ->
+        :ok
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
   defp maybe_commit_changelog(changelog_file, new_version, rc_branch, opts) do
-    commit? = Keyword.get(opts, :commit?, false)
-    # ask for confirmation
-    with true <- commit?,
+    commit? = Keyword.get(opts, :commit, false)
+    push? = Keyword.get(opts, :push, false)
+
+    with true <- commit? or push?,
+         # ask for confirmation
          :ok <- prompt_changelog_confirmation(),
          # commit changelog
          :ok <- GitHelper.git_unstage_all(),
@@ -87,7 +114,7 @@ defmodule Realleasy do
   end
 
   defp maybe_push_commit(rc_branch, opts) do
-    push? = Keyword.get(opts, :push?, false)
+    push? = Keyword.get(opts, :push, false)
 
     with true <- push?,
          # push to remote
@@ -101,11 +128,6 @@ defmodule Realleasy do
         error
     end
   end
-
-  defp get_base_branch(nil), do: Application.get_env(:realleasy, :default_base_branch)
-  defp get_base_branch(base_branch), do: base_branch
-
-  defp get_changelog_file, do: Application.get_env(:realleasy, :default_changelog_file)
 
   defp prompt_version_bump(current_version) do
     IO.puts("Current version: #{current_version}")

@@ -1,7 +1,15 @@
 defmodule GitHelper do
+  def get_remote_url(remote \\ "origin") do
+    case System.cmd("git", ["remote", "get-url", remote]) do
+      {url, 0} -> {:ok, String.trim(url)}
+      {_result, _status_code} = error -> {:error, error}
+    end
+  end
+
   def get_current_git_branch do
     case System.cmd("git", ["branch", "--show-current"]) do
       {branch_name, 0} -> {:ok, String.trim(branch_name)}
+      {"", 128} -> {:error, :not_git_repo}
       {_result, _status_code} = error -> {:error, error}
     end
   end

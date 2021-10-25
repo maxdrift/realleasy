@@ -27,3 +27,6 @@ realleasy-*.tar
 
 # Direnv custom/secret variables
 .envrc.custom
+
+# Realleasy executable
+realleasy

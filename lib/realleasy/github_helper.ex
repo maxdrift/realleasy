@@ -118,21 +118,28 @@ defmodule GitHubHelper do
 
   # Internal
 
-  defp get_config do
-    Application.get_env(:realleasy, :github)
-  end
-
-  defp get_config(key) do
-    config = get_config()
-    Keyword.get(config, key)
-  end
-
   defp get_basic_auth do
-    [username: get_config(:username), password: get_config(:token)]
+    username = System.fetch_env!("GITHUB_USERNAME")
+    token = System.fetch_env!("GITHUB_TOKEN")
+
+    [username: username, password: token]
+  end
+
+  defp get_repo_reference(origin_url) do
+    case String.split(origin_url, ~r{:|\.|/}) do
+      ["git@github", "com", owner, repo, "git"] ->
+        {:ok, {owner, repo}}
+
+      _other ->
+        {:error, {:invalid_url, origin_url}}
+    end
   end
 
   defp get_base_params do
-    [owner: get_config(:repo_owner), repo: get_config(:repo_name)]
+    with {:ok, url} <- GitHelper.get_remote_url(),
+         {:ok, {owner, repo}} <- get_repo_reference(url) do
+      [owner: owner, repo: repo]
+    end
   end
 
   defp fetch_gh_pull_request(commit_hash, {:ok, acc}) do
@@ -155,20 +162,5 @@ defmodule GitHubHelper do
       {:error, _reason} = error ->
         {:halt, error}
     end
-
-    # case get(@commits_endpoint, opts: [path_params: path_params]) do
-    #   {:ok, %Tesla.Env{body: body}} ->
-    #     [pull_request] =
-    #       Enum.filter(body, fn pr -> pr["state"] == "closed" and not is_nil(pr["merged_at"]) end)
-
-    #     pr_number = pull_request["number"]
-    #     pr_url = pull_request["html_url"]
-    #     pr_desc = pull_request["body"]
-
-    #     {:cont, {:ok, [{pr_number, pr_url, pr_desc} | acc]}}
-
-    #   {:error, _reason} = error ->
-    #     {:halt, error}
-    # end
   end
 end

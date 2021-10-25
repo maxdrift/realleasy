@@ -7,23 +7,6 @@ defmodule Mix.Tasks.Changelog do
 
   use Mix.Task
 
-  alias Realleasy
-
   @impl Mix.Task
-  def run([rc_branch]) do
-    Realleasy.prepare_changelog(rc_branch)
-  end
-
-  def run([rc_branch, "into", base_branch]) do
-    Realleasy.prepare_changelog(rc_branch, base_branch)
-  end
-
-  def run(_args) do
-    IO.puts("""
-    Invalid arguments. Please run:
-      mix changelog <rc-branch>
-    or
-      mix changelog <rc-branch> into <base-branch>
-    """)
-  end
+  def run(argv), do: Realleasy.CLI.main(["changelog" | argv])
 end

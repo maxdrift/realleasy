@@ -5,7 +5,7 @@ defmodule Realleasy.MixProject do
     [
       app: :realleasy,
       version: "0.2.2",
-      elixir: "~> 1.12",
+      elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       description: description(),
       package: package(),
@@ -16,7 +16,8 @@ defmodule Realleasy.MixProject do
       docs: [
         main: "Realleasy",
         extras: ["README.md"]
-      ]
+      ],
+      escript: escript()
     ]
   end
 
@@ -49,5 +50,9 @@ defmodule Realleasy.MixProject do
       source_url: "https://github.com/maxdrift/realleasy",
       homepage_url: "https://github.com/maxdrift/realleasy"
     ]
+  end
+
+  defp escript do
+    [main_module: Realleasy.CLI]
   end
 end
