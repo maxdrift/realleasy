@@ -50,7 +50,7 @@ defmodule Realleasy do
       :ok
     else
       {:error, reason} ->
-        Logger.error("Failed to generate the Changelog: #{reason}")
+        Logger.error("Failed to generate the Changelog: #{inspect(reason)}")
         :error
     end
 
