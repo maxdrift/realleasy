@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v0.3.1 (Deployed on 2021-10-31)
+
+### Added
+
+### Changed
+
+* Require less CLI arguments
+* Catch (almost) any error to allow "unstashing"
+
+### Fixed
+
+* Support only `v<major>.<minor>.<patch>` tags
+* Stop ignoring `cli.ex` under version control
+
+
 ## v0.3.0 (Deployed on 2021-10-25)
 
 ### Added

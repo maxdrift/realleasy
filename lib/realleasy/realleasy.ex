@@ -14,7 +14,7 @@ defmodule Realleasy do
   Optionally commits and pushed to a remote origin.
   """
   @spec prepare_changelog(String.t(), String.t() | nil, Keyword.t()) :: :ok | {:error, any()}
-  def prepare_changelog(rc_branch, base_branch \\ nil, opts \\ []) do
+  def prepare_changelog(rc_branch \\ nil, base_branch \\ nil, opts \\ []) do
     # Make sure Hackney is started
     Application.ensure_all_started(:hackney)
 
@@ -23,34 +23,45 @@ defmodule Realleasy do
 
     # save current branch name
     {:ok, current_branch} = GitHelper.get_current_git_branch()
+    rc_branch = rc_branch || current_branch
 
-    with :ok <- maybe_stash(opts),
-         :ok <- GitHelper.fetch_git_changes(),
-         # fetch --prune
-         # git checkout RC branch
-         :ok <- GitHelper.checkout_git_branch(rc_branch),
-         # get last tag
-         {:ok, prev_tag} <- GitHelper.get_most_recent_git_tag(),
-         # find commits beween last tag and head of base_branch or commit hash and present them to the user
-         {:ok, commit_hashes} <- GitHubHelper.get_commits_between_refs(base_branch, rc_branch),
-         # ask for a version bump (i.e. major, minor, patch)
-         {:ok, answer} <- prompt_version_bump(prev_tag),
-         {:ok, new_version} <- bump_version(prev_tag, answer),
-         {:ok, changelog} <- ChangelogHelper.read_changelog(changelog_file),
-         :ok <- ChangelogHelper.validate_new_version(changelog, new_version),
-         # fetch all PRs {pr_number, pr_url, pr_desc}
-         {:ok, pull_requests} <- GitHubHelper.fetch_gh_pull_requests(commit_hashes),
-         {:ok, changes} <- ChangelogHelper.parse_pr_descriptions(pull_requests),
-         # generate Changelog section
-         {:ok, new_changelog} <-
-           ChangelogHelper.render_changelog(new_version, changes, Date.utc_today()),
-         # prepend to existing changelog
-         :ok <- ChangelogHelper.write_changelog(changelog, new_changelog, changelog_file),
-         :ok <- maybe_commit_changelog(changelog_file, new_version, rc_branch, opts) do
-      :ok
-    else
-      {:error, reason} ->
-        Logger.error("Failed to generate the Changelog: #{inspect(reason)}")
+    try do
+      with :ok <- maybe_stash(opts),
+           :ok <- GitHelper.fetch_git_changes(),
+           # fetch --prune
+           # git checkout RC branch
+           :ok <- GitHelper.checkout_git_branch(rc_branch),
+           # get last tag
+           {:ok, prev_tag} <- GitHelper.get_most_recent_git_tag(base_branch),
+           # find commits beween last tag and head of base_branch or commit hash and present them to the user
+           {:ok, commit_hashes} <- GitHubHelper.get_commits_between_refs(base_branch, rc_branch),
+           # ask for a version bump (i.e. major, minor, patch)
+           {:ok, answer} <- prompt_version_bump(prev_tag),
+           {:ok, new_version} <- bump_version(prev_tag, answer),
+           {:ok, changelog} <- ChangelogHelper.read_changelog(changelog_file),
+           :ok <- ChangelogHelper.validate_new_version(changelog, new_version),
+           # fetch all PRs {pr_number, pr_url, pr_desc}
+           {:ok, pull_requests} <- GitHubHelper.fetch_gh_pull_requests(commit_hashes),
+           {:ok, changes} <- ChangelogHelper.parse_pr_descriptions(pull_requests),
+           # generate Changelog section
+           {:ok, new_changelog} <-
+             ChangelogHelper.render_changelog(new_version, changes, Date.utc_today()),
+           # prepend to existing changelog
+           :ok <- ChangelogHelper.write_changelog(changelog, new_changelog, changelog_file),
+           :ok <- maybe_commit_changelog(changelog_file, new_version, rc_branch, opts) do
+        :ok
+      else
+        {:error, reason} ->
+          Logger.error("Failed to generate the Changelog: #{inspect(reason)}")
+          :error
+      end
+    rescue
+      e in RuntimeError ->
+        Logger.error("Error generating the Changelog: #{e.message}")
+        :error
+
+      error ->
+        Logger.error("Error generating the Changelog: #{inspect(error)}")
         :error
     end
 

@@ -1,4 +1,6 @@
 defmodule GitHelper do
+  require Logger
+
   def get_remote_url(remote \\ "origin") do
     case System.cmd("git", ["remote", "get-url", remote]) do
       {url, 0} -> {:ok, String.trim(url)}
@@ -50,10 +52,22 @@ defmodule GitHelper do
     end
   end
 
-  def get_most_recent_git_tag do
-    case System.cmd("git", ["describe", "--tags", "--abbrev=0"]) do
-      {tag, 0} -> {:ok, String.trim(tag)}
-      {_result, _status_code} = error -> {:error, error}
+  def get_most_recent_git_tag(ref \\ nil) do
+    opt_arguments = if ref, do: [ref], else: []
+
+    case System.cmd(
+           "git",
+           ["describe", "--tags", "--abbrev=0", "--match=v*.*.*"] ++ opt_arguments
+         ) do
+      {<<"v"::binary(), _version::binary()>> = tag, 0} ->
+        {:ok, String.trim(tag)}
+
+      {"", 128} ->
+        Logger.error("Could not find a valid tag. Only 'v<major>.<minor>.<patch>' is supported")
+        {:error, :invalid_tag}
+
+      {_result, _status_code} = error ->
+        {:error, error}
     end
   end
 
